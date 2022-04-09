@@ -1,0 +1,32 @@
+name: safety-gym-3
+channels:
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1
+  - _openmp_mutex=4.5
+  - ca-certificates=2022.3.29
+  - certifi=2020.6.20
+  - ld_impl_linux-64=2.35.1
+  - libffi=3.3
+  - libgcc-ng=9.3.0
+  - libgomp=9.3.0
+  - libstdcxx-ng=9.3.0
+  - ncurses=6.3
+  - openssl=1.1.1n
+  - pip=21.2.2
+  - python=3.6.13
+  - readline=8.1.2
+  - setuptools=58.0.4
+  - sqlite=3.38.2
+  - tk=8.6.11
+  - wheel=0.37.1
+  - xz=5.2.5
+  - zlib=1.2.11
+  - pip:
+    - cloudpickle==1.2.2
+    - fasteners==0.17.3
+    - gym==0.21.0
+    - joblib==0.14.1
+    - mujoco-py==2.0.2.7
+    - numpy==1.19.5
+    - xmltodict==0.12.0

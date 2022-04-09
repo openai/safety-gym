@@ -11,10 +11,10 @@ setup(
     name='safety_gym',
     packages=['safety_gym'],
     install_requires=[
-        'gym~=0.15.3',
+        'gym~=0.21.0',
         'joblib~=0.14.0',
         'mujoco_py==2.0.2.7',
-        'numpy~=1.17.4',
+        'numpy~=1.19.5',
         'xmltodict~=0.12.0',
     ],
 )
