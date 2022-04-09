@@ -1119,6 +1119,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 flat_obs[offset:offset + k_size] = obs[k].flat
                 offset += k_size
             obs = flat_obs
+        # caused by obs.dtype == np.float64 and observation_sapce.dtype == np.float32
+        # fix by choosing wheter to use 64 or 32 floats (guessing 32?)
+        obs = obs.astype(np.float32)
         assert self.observation_space.contains(obs), f'Bad obs {obs} {self.observation_space}'
         return obs
 
