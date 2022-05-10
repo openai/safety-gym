@@ -293,6 +293,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
         '_seed': None,  # Random state seed (avoid name conflict with self.seed)
     }
 
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
+
     def __init__(self, config={}):
         # First, parse configuration. Important note: LOTS of stuff happens in
         # parse, and many attributes of the class get set through setattr. If you
@@ -315,6 +317,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
         self.seed(self._seed)
         self.done = True
+
 
     def parse(self, config):
         ''' Parse a config dict - see self.DEFAULT for description '''
@@ -1432,7 +1435,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             else:
                 self.viewer = MjRenderContextOffscreen(self.sim)
                 self.viewer._hide_overlay = True
-                self.viewer.cam.fixedcamid = camera_id #self.model.camera_name2id(mode)
+                # self.viewer.cam.fixedcamid = camera_id #self.model.camera_name2id(mode)
+                self.viewer.cam.fixedcamid = 1
                 self.viewer.cam.type = const.CAMERA_FIXED
             self.viewer.render_swap_callback = self.render_swap_callback
             # Turn all the geom groups on
