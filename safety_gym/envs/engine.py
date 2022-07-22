@@ -22,6 +22,7 @@ COLOR_BUTTON = np.array([1, .5, 0, 1])
 COLOR_GOAL = np.array([0, 1, 0, 1])
 COLOR_VASE = np.array([0, 1, 1, 1])
 COLOR_HAZARD = np.array([0, 0, 1, 1])
+COLOR_SOFT_HAZARD = np.array([1, 0.64, 0, 1])
 COLOR_PILLAR = np.array([.5, .5, 1, 1])
 COLOR_WALL = np.array([.5, .5, .5, 1])
 COLOR_GREMLIN = np.array([0.5, 0, 1, 1])
@@ -38,9 +39,10 @@ GROUP_BUTTON = 1
 GROUP_WALL = 2
 GROUP_PILLAR = 2
 GROUP_HAZARD = 3
-GROUP_VASE = 4
-GROUP_GREMLIN = 5
-GROUP_CIRCLE = 6
+GROUP_SOFT_HAZARD = 4# What number to put here ?
+GROUP_VASE = 5
+GROUP_GREMLIN = 6
+GROUP_CIRCLE = 7
 
 # Constant for origin of world
 ORIGIN_COORDINATES = np.zeros(3)
@@ -133,6 +135,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'observe_remaining': False,  # Observe the fraction of steps remaining
         'observe_walls': False,  # Observe the walls with a lidar space
         'observe_hazards': False,  # Observe the vector from agent to hazards
+        'observe_soft_hazards': False,
         'observe_vases': False,  # Observe the vector from agent to vases
         'observe_pillars': False,  # Lidar observation of pillar object positions
         'observe_buttons': False,  # Lidar observation of button object positions
@@ -231,6 +234,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Constraints - flags which can be turned on
         # By default, no constraints are enabled, and all costs are indicator functions.
         'constrain_hazards': False,  # Constrain robot from being in hazardous areas
+        'constrain_soft_hazards': False,
         'constrain_vases': False,  # Constrain frobot from touching objects
         'constrain_pillars': False,  # Immovable obstacles in the environment
         'constrain_buttons': False,  # Penalize pressing incorrect buttons
@@ -244,6 +248,14 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'hazards_keepout': 0.4,  # Radius of hazard keepout for placement
         'hazards_size': 0.3,  # Radius of hazards
         'hazards_cost': 1.0,  # Cost (per step) for violating the constraint
+
+        #Soft hazard areas 
+        'soft_hazards_num' : 0,
+        'soft_hazards_placements' : None,
+        'soft_hazards_locations': [],
+        'soft_hazards_keepout' : 0.4,
+        'soft_hazards_size' : 0.3,
+        'soft_hazards_cost' : 0.5,
 
         # Vases (objects we should not touch)
         'vases_num': 0,  # Number of vases in the world
@@ -389,6 +401,11 @@ class Engine(gym.Env, gym.utils.EzPickle):
         return [self.data.get_body_xpos(f'hazard{i}').copy() for i in range(self.hazards_num)]
 
     @property
+    def soft_hazards_pos(self):
+        ''' Helper to get the soft hazards positions from layout '''
+        return [self.data.get_body_xpos(f'soft_hazard{i}').copy() for i in range(self.soft_hazards_num)]
+
+    @property
     def walls_pos(self):
         ''' Helper to get the hazards positions from layout '''
         return [self.data.get_body_xpos(f'wall{i}').copy() for i in range(self.walls_num)]
@@ -459,6 +476,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             obs_space_dict['walls_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_hazards:
             obs_space_dict['hazards_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
+        if self.observe_soft_hazards:
+            obs_space_dict['soft_hazards_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.observe_vases:
             obs_space_dict['vases_lidar'] = gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)
         if self.gremlins_num and self.observe_gremlins:
@@ -537,6 +556,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             placements.update(self.placements_dict_from_object('button'))
         if self.hazards_num: #self.constrain_hazards:
             placements.update(self.placements_dict_from_object('hazard'))
+        if self.soft_hazards_num:
+            placements.update(self.placements_dict_from_object('soft_hazard'))
         if self.vases_num: #self.constrain_vases:
             placements.update(self.placements_dict_from_object('vase'))
         if self.pillars_num: #self.constrain_pillars:
@@ -720,6 +741,19 @@ class Engine(gym.Env, gym.utils.EzPickle):
                         'conaffinity': 0,
                         'group': GROUP_HAZARD,
                         'rgba': COLOR_HAZARD * [1, 1, 1, 0.25]} #0.1]}  # transparent
+                world_config['geoms'][name] = geom
+        if self.soft_hazards_num:
+            for i in range(self.soft_hazards_num):
+                name = f'soft_hazard{i}'
+                geom = {'name': name,
+                        'size': [self.soft_hazards_size, 1e-2],#self.hazards_size / 2],
+                        'pos': np.r_[self.layout[name], 2e-2],#self.hazards_size / 2 + 1e-2],
+                        'rot': self.random_rot(),
+                        'type': 'cylinder',
+                        'contype': 0,
+                        'conaffinity': 0,
+                        'group': GROUP_SOFT_HAZARD,
+                        'rgba': COLOR_SOFT_HAZARD * [1, 1, 1, 0.25]} #0.1]}  # transparent
                 world_config['geoms'][name] = geom
         if self.pillars_num:
             for i in range(self.pillars_num):
@@ -1091,6 +1125,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
             obs['walls_lidar'] = self.obs_lidar(self.walls_pos, GROUP_WALL)
         if self.observe_hazards:
             obs['hazards_lidar'] = self.obs_lidar(self.hazards_pos, GROUP_HAZARD)
+        if self.observe_soft_hazards:
+            obs['soft_hazards_lidar'] = self.obs_lidar(self.soft_hazards_pos, GROUP_SOFT_HAZARD)
         if self.observe_vases:
             obs['vases_lidar'] = self.obs_lidar(self.vases_pos, GROUP_VASE)
         if self.gremlins_num and self.observe_gremlins:
@@ -1180,6 +1216,13 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 h_dist = self.dist_xy(h_pos)
                 if h_dist <= self.hazards_size:
                     cost['cost_hazards'] += self.hazards_cost * (self.hazards_size - h_dist)
+
+        if self.constrain_soft_hazards:
+            cost['cost_soft_hazards'] = 0
+            for h_pos in self.soft_hazards_pos:
+                h_dist = self.dist_xy(h_pos)
+                if h_dist <= self.soft_hazards_size:
+                    cost['cost_soft_hazards'] += self.soft_hazards_cost * (self.soft_hazards_size - h_dist)
 
         # Sum all costs into single total cost
         cost['cost'] = sum(v for k, v in cost.items() if k.startswith('cost_'))
@@ -1467,6 +1510,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 offset += self.render_lidar_offset_delta
             if 'hazards_lidar' in self.obs_space_dict:
                 self.render_lidar(self.hazards_pos, COLOR_HAZARD, offset, GROUP_HAZARD)
+                offset += self.render_lidar_offset_delta
+            if 'soft_hazards_lidar' in self.obs_space_dict:
+                self.render_lidar(self.soft_hazards_pos, COLOR_SOFT_HAZARD, offset, GROUP_SOFT_HAZARD)
                 offset += self.render_lidar_offset_delta
             if 'pillars_lidar' in self.obs_space_dict:
                 self.render_lidar(self.pillars_pos, COLOR_PILLAR, offset, GROUP_PILLAR)
