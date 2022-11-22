@@ -6,9 +6,8 @@ import numpy as np
 from copy import deepcopy
 from collections import OrderedDict
 from mujoco_py import const, load_model_from_path, load_model_from_xml, MjSim, MjViewer, MjRenderContextOffscreen
-
+from typing import Optional
 import safety_gym
-import sys
 
 '''
 Tools that allow the Safety Gym Engine to interface to MuJoCo.
@@ -68,12 +67,13 @@ class World:
         'observe_vision': False,
     }
 
-    def __init__(self, config={}, render_context=None):
+    def __init__(self, config={}, render_mode: Optional[str] = None, render_context=None):
         ''' config - JSON string or dict of configuration.  See self.parse() '''
         self.parse(config)  # Parse configuration
         self.first_reset = True
         self.viewer = None
         self.render_context = render_context
+        self.render_mode = render_mode
         self.update_viewer_sim = False
         self.robot = Robot(self.robot_base)
 
@@ -173,6 +173,7 @@ class World:
         cameras = xmltodict.parse('''<b>
             <camera name="fixednear" pos="0 -2 2" zaxis="0 -1 1"/>
             <camera name="fixedfar" pos="0 -5 5" zaxis="0 -1 1"/>
+            <camera name="fixedfurthest" pos="0 -8 8" zaxis="0 -1 1"/>
             </b>''')
         worldbody['camera'] = cameras['b']['camera']
 
@@ -313,8 +314,9 @@ class World:
         # set flag so that renderer knows to update sim
         self.update_viewer_sim = True
 
-    def render(self, mode='human'):
+    def render(self):
         ''' Render the environment to the screen '''
+        mode = self.render_mode
         if self.viewer is None:
             self.viewer = MjViewer(self.sim)
             # Turn all the geom groups on
@@ -401,7 +403,7 @@ class Robot:
                     elif sensor_type == const.SENS_JOINTVEL:
                         self.hinge_vel_names.append(name)
                     else:
-                        t = self.sim.model.sensor_type[i]
+                        t = self.sim.model.sensor_type[id]
                         raise ValueError('Unrecognized sensor type {} for joint'.format(t))
                 elif joint_type == const.JNT_BALL:
                     if sensor_type == const.SENS_BALLQUAT:

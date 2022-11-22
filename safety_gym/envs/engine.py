@@ -8,11 +8,10 @@ from copy import deepcopy
 from collections import OrderedDict
 import mujoco_py
 from mujoco_py import MjViewer, MujocoException, const, MjRenderContextOffscreen
+from typing import Optional
 
+from gym.utils.step_api_compatibility import convert_to_terminated_truncated_step_api
 from safety_gym.envs.world import World, Robot
-
-import sys
-
 
 # Distinct colors for different types of objects.
 # For now this is mostly used for visualization.
@@ -46,8 +45,10 @@ GROUP_CIRCLE = 6
 ORIGIN_COORDINATES = np.zeros(3)
 
 # Constant defaults for rendering frames for humans (not used for vision)
-DEFAULT_WIDTH = 256
-DEFAULT_HEIGHT = 256
+# DEFAULT_WIDTH = 256
+# DEFAULT_HEIGHT = 256
+DEFAULT_WIDTH = 1024
+DEFAULT_HEIGHT = 1024
 
 class ResamplingError(AssertionError):
     ''' Raised when we fail to sample a valid distribution of objects or goals '''
@@ -289,13 +290,19 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # For deterministic steps, set frameskip_binom_p = 1.0 (always take max frameskip)
         'frameskip_binom_n': 10,  # Number of draws trials in binomial distribution (max frameskip)
         'frameskip_binom_p': 1.0,  # Probability of trial return (controls distribution)
-
+        
+        # Recording Setup
+        'default_camera_id': 1,
+        
         '_seed': None,  # Random state seed (avoid name conflict with self.seed)
     }
 
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
-
-    def __init__(self, config={}):
+    metadata = {
+        "render_modes": ["human", "rgb_array"],
+        "render_fps": 30,
+    }
+    
+    def __init__(self, render_mode: Optional[str] = None, config={}):
         # First, parse configuration. Important note: LOTS of stuff happens in
         # parse, and many attributes of the class get set through setattr. If you
         # are trying to track down where an attribute gets initially set, and 
@@ -310,7 +317,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.action_space = gym.spaces.Box(-1, 1, (self.robot.nu,), dtype=np.float32)
         self.build_observation_space()
         self.build_placements_dict()
-
+        
+        self.render_mode = render_mode
+        
         self.viewer = None
         self.world = None
         self.clear()
@@ -855,7 +864,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.world_config_dict = self.build_world_config()
 
         if self.world is None:
-            self.world = World(self.world_config_dict)
+            self.world = World(self.world_config_dict, render_mode=self.render_mode)
             self.world.reset()
             self.world.build()
         else:
@@ -891,7 +900,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.first_reset = False  # Built our first world successfully
 
         # Return an observation
-        return self.obs()
+        return self.obs(), {}
 
     def dist_goal(self):
         ''' Return the distance from the robot to the goal XY position '''
@@ -1306,8 +1315,12 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.steps += 1
         if self.steps >= self.num_steps:
             self.done = True  # Maximum number of steps in an episode reached
-
-        return self.obs(), reward, self.done, info
+        
+        if self.render_mode == 'human':
+            self.render()
+            
+        return convert_to_terminated_truncated_step_api((self.obs(), reward, self.done, info))
+        # return self.obs(), reward, self.done, info
 
     def reward(self):
         ''' Calculate the dense component of reward.  Call exactly once per step '''
@@ -1419,14 +1432,24 @@ class Engine(gym.Env, gym.utils.EzPickle):
             self.viewer.draw_pixels(self.save_obs_vision, 0, 0)
 
     def render(self,
-               mode='human', 
                camera_id=None,
                width=DEFAULT_WIDTH,
                height=DEFAULT_HEIGHT
                ):
         ''' Render the environment to the screen '''
+        
+        mode = self.render_mode
+        camera_id=self.default_camera_id
+        
+        # if self.render_mode is None:
+        #     gym.logger.warn(
+        #         "You are calling render method without specifying any render mode. "
+        #         "You can specify the render_mode at initialization, "
+        #         f'e.g. gym("{self.spec.id}", render_mode="rgb_array")'
+        #     )
+        #     return
 
-        if self.viewer is None or mode!=self._old_render_mode:
+        if self.viewer is None or self.render_mode!=self._old_render_mode:
             # Set camera if specified
             if mode == 'human':
                 self.viewer = MjViewer(self.sim)
@@ -1435,8 +1458,10 @@ class Engine(gym.Env, gym.utils.EzPickle):
             else:
                 self.viewer = MjRenderContextOffscreen(self.sim)
                 self.viewer._hide_overlay = True
-                # self.viewer.cam.fixedcamid = camera_id #self.model.camera_name2id(mode)
-                self.viewer.cam.fixedcamid = 1
+                if camera_id is not None:
+                    self.viewer.cam.fixedcamid = camera_id #self.model.camera_name2id(mode)
+                else:
+                    self.viewer.cam.fixedcamid = self.default_camera_id
                 self.viewer.cam.type = const.CAMERA_FIXED
             self.viewer.render_swap_callback = self.render_swap_callback
             # Turn all the geom groups on
@@ -1447,7 +1472,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
         if camera_id is not None:
             # Update camera if desired
             self.viewer.cam.fixedcamid = camera_id
-
+        else:
+            self.viewer.cam.fixedcamid = self.default_camera_id
+        
         # Lidar markers
         if self.render_lidar_markers:
             offset = self.render_lidar_offset_init  # Height offset for successive lidar indicators
