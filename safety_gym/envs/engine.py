@@ -1438,17 +1438,17 @@ class Engine(gym.Env, gym.utils.EzPickle):
                ):
         ''' Render the environment to the screen '''
         
+        if self.render_mode is None:
+            gym.logger.warn(
+                "You are calling render method without specifying any render mode. "
+                "You can specify the render_mode at initialization, "
+                f'e.g. gym("{self.spec.id}", render_mode="rgb_array")'
+            )
+            return
+        
         mode = self.render_mode
         camera_id=self.default_camera_id
         
-        # if self.render_mode is None:
-        #     gym.logger.warn(
-        #         "You are calling render method without specifying any render mode. "
-        #         "You can specify the render_mode at initialization, "
-        #         f'e.g. gym("{self.spec.id}", render_mode="rgb_array")'
-        #     )
-        #     return
-
         if self.viewer is None or self.render_mode!=self._old_render_mode:
             # Set camera if specified
             if mode == 'human':
