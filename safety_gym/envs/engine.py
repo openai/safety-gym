@@ -878,10 +878,13 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Save last subtree center of mass
         self.last_subtreecom = self.world.get_sensor('subtreecom')
 
-    def reset(self):
+    def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
         ''' Reset the physics simulation and return observation '''
         self._seed += 1  # Increment seed
-        self.rs = np.random.RandomState(self._seed)
+        if seed is not None:
+            self._np_random, self.rs = gym.utils.seeding.np_random(seed)
+        else: 
+            self.rs = np.random.RandomState(self._seed)
         self.done = False
         self.steps = 0  # Count of steps taken in this episode
         # Set the button timer to zero (so button is immediately visible)
