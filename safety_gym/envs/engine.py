@@ -1317,6 +1317,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.steps += 1
         if self.steps >= self.num_steps:
             self.done = True  # Maximum number of steps in an episode reached
+            info["TimeLimit.truncated"]=True # Add Truncated Time Limit Info
         
         if self.render_mode == 'human':
             self.render()
