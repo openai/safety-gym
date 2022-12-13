@@ -96,7 +96,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
     # Default configuration (this should not be nested since it gets copied)
     DEFAULT = {
-        'num_steps': 1000,  # Maximum number of environment steps in an episode
+        'max_episode_steps': 1000,  # Maximum number of environment steps in an episode
 
         'action_noise': 0.0,  # Magnitude of independent per-component gaussian action noise
 
@@ -1099,7 +1099,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 for sensor in self.robot.ballquat_names:
                     obs[sensor] = self.world.get_sensor(sensor)
         if self.observe_remaining:
-            obs['remaining'] = np.array([self.steps / self.num_steps])
+            obs['remaining'] = np.array([self.steps / self.max_episode_steps])
             assert 0.0 <= obs['remaining'][0] <= 1.0, 'bad remaining {}'.format(obs['remaining'])
         if self.walls_num and self.observe_walls:
             obs['walls_lidar'] = self.obs_lidar(self.walls_pos, GROUP_WALL)
@@ -1315,7 +1315,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
         # Timeout
         self.steps += 1
-        if self.steps >= self.num_steps:
+        if self.steps >= self.max_episode_steps:
             self.done = True  # Maximum number of steps in an episode reached
             info["TimeLimit.truncated"]=True # Add Truncated Time Limit Info
         
