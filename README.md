@@ -71,7 +71,7 @@ To register that custom environment with Gym:
 from gym.envs.registration import register
 
 register(id='SafexpTestEnvironment-v0',
-         entry_point='safety_gym.envs.mujoco:Engine',
+         entry_point='safety_gym.envs.safety_mujoco:Engine',
          kwargs={'config': config})
 ```
 
