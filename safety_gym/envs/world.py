@@ -60,8 +60,8 @@ class World:
         'objects': {},  # map from name -> object dict
         # Geoms -- similar to objects, but they are immovable and fixed in the scene.
         'geoms': {},  # map from name -> geom dict
-        # Mocaps -- mocap objects which are used to control other objects
-        'mocaps': {},
+        # Mockups -- mockup objects which are used to control other objects
+        'mockups': {},
 
         # Determine whether we create render contexts
         'observe_vision': False,
@@ -238,27 +238,27 @@ class World:
             # Append new body to world, making it a list optionally
             # Add the object to the world
             worldbody['body'].append(body['body'])
-        # Add mocaps to the XML dictionary
-        for name, mocap in self.mocaps.items():
-            # Mocap names are suffixed with 'mocap'
-            assert mocap['name'] == name, f'Inconsistent {name} {object}'
-            assert name.replace('mocap', 'obj') in self.objects, f'missing object for {name}'
+        # Add mockups to the XML dictionary
+        for name, mockup in self.mockups.items():
+            # Mockup names are suffixed with 'mockup'
+            assert mockup['name'] == name, f'Inconsistent {name} {object}'
+            assert name.replace('mockup', 'obj') in self.objects, f'missing object for {name}'
             # Add the object to the world
-            mocap = mocap.copy()  # don't modify original object
-            mocap['quat'] = rot2quat(mocap['rot'])
+            mockup = mockup.copy()  # don't modify original object
+            mockup['quat'] = rot2quat(mockup['rot'])
             body = xmltodict.parse('''
-                <body name="{name}" mocap="true">
+                <body name="{name}" mockup="true">
                     <geom name="{name}" type="{type}" size="{size}" rgba="{rgba}"
                         pos="{pos}" quat="{quat}" contype="0" conaffinity="0" group="{group}"/>
                 </body>
-            '''.format(**{k: convert(v) for k, v in mocap.items()}))
+            '''.format(**{k: convert(v) for k, v in mockup.items()}))
             worldbody['body'].append(body['body'])
             # Add weld to equality list
-            mocap['body1'] = name
-            mocap['body2'] = name.replace('mocap', 'obj')
+            mockup['body1'] = name
+            mockup['body2'] = name.replace('mockup', 'obj')
             weld = xmltodict.parse('''
                 <weld name="{name}" body1="{body1}" body2="{body2}" solref=".02 1.5"/>
-            '''.format(**{k: convert(v) for k, v in mocap.items()}))
+            '''.format(**{k: convert(v) for k, v in mockup.items()}))
             equality['weld'].append(weld['weld'])
         # Add geoms to XML dictionary
         for name, geom in self.geoms.items():
@@ -414,5 +414,5 @@ class Robot:
                     # Adding slide joints is trivially easy in code,
                     # but this removes one of the good properties about our observations.
                     # (That we are invariant to relative whole-world transforms)
-                    # If slide joints are added we sould ensure this stays true!
+                    # If slide joints are added we should ensure this stays true!
                     raise ValueError('Slide joints in robots not currently supported')
