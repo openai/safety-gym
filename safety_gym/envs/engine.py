@@ -1127,6 +1127,11 @@ class Engine(gym.Env, gym.utils.EzPickle):
             obs['ctrl'] = self.data.ctrl.copy()
         if self.observe_vision:
             obs['vision'] = self.obs_vision()
+        
+        # Save Observation Space Before Flattening
+        self.unsorted_obs = obs
+        self.sorted_obs = dict(sorted(obs.items()))
+        
         if self.observation_flatten:
             flat_obs = np.zeros(self.obs_flat_size)
             offset = 0
@@ -1135,6 +1140,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 flat_obs[offset:offset + k_size] = obs[k].flat
                 offset += k_size
             obs = flat_obs
+
         # caused by obs.dtype == np.float64 and observation_space.dtype == np.float32
         # fix by choosing whether to use 64 or 32 floats (guessing 32?)
         obs = obs.astype(np.float32)
@@ -1323,7 +1329,11 @@ class Engine(gym.Env, gym.utils.EzPickle):
         
         if self.render_mode == 'human':
             self.render()
-            
+        
+        # Add Sorted and Unsorted Observation Space to info
+        info['unsorted_obs'] = self.unsorted_obs
+        info['sorted_obs']   = self.sorted_obs
+        
         return convert_to_terminated_truncated_step_api((self.obs(), reward, self.done, info))
         # return self.obs(), reward, self.done, info
 
