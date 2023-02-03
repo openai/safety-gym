@@ -442,7 +442,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 # This also means that the first element of the quaternion is not expectation zero.
                 # The SO(3) rotation representation would be a good replacement here,
                 # since it smoothly varies between values in all directions (the property we want),
-                # but right now we have very little code to support SO(3) roatations.
+                # but right now we have very little code to support SO(3) rotations.
                 # Instead we use a 3x3 rotation matrix, which if normalized, smoothly varies as well.
                 for sensor in self.robot.ballquat_names:
                     obs_space_dict[sensor] = gym.spaces.Box(-np.inf, np.inf, (3, 3), dtype=np.float32)
@@ -1034,10 +1034,10 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 pos = pos[:2]  # Truncate Z coordinate
             z = complex(*self.ego_xy(pos))  # X, Y as real, imaginary components
             dist = np.abs(z)
-            angle = np.angle(z) % (np.pi * 2)
+            angle = np.angle(z) % (np.pi * 2) # Angle Between 'Pos' and Robot
             bin_size = (np.pi * 2) / self.lidar_num_bins
             bin = int(angle / bin_size)
-            bin_angle = bin_size * bin
+            bin_angle = bin_size * bin # Nearest Bin Angle to 'Pos'
             if self.lidar_max_dist is None:
                 sensor = np.exp(-self.lidar_exp_gain * dist)
             else:
@@ -1394,10 +1394,10 @@ class Engine(gym.Env, gym.utils.EzPickle):
         for i, sensor in enumerate(lidar):
             if self.lidar_type == 'pseudo':
                 i += 0.5  # Offset to center of bin
-            theta = 2 * np.pi * i / self.lidar_num_bins
+            theta = 2 * np.pi * i / self.lidar_num_bins # Angle of each Lidar Bin
             rad = self.render_lidar_radius
-            binpos = np.array([np.cos(theta) * rad, np.sin(theta) * rad, offset])
-            pos = robot_pos + np.matmul(binpos, robot_mat.transpose())
+            binpos = np.array([np.cos(theta) * rad, np.sin(theta) * rad, offset]) # Position [x,y] of each Bin
+            pos = robot_pos + np.matmul(binpos, robot_mat.transpose()) # Transform position in respect to Robot
             alpha = min(1, sensor + .1)
             self.viewer.add_marker(pos=pos,
                                    size=self.render_lidar_size * np.ones(3),
