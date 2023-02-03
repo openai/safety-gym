@@ -904,7 +904,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.first_reset = False  # Built our first world successfully
 
         # Return an observation
-        return self.obs(), {}
+        return self.obs(), {'sorted_obs':self.sorted_obs}
 
     def dist_goal(self):
         ''' Return the distance from the robot to the goal XY position '''
@@ -1129,7 +1129,6 @@ class Engine(gym.Env, gym.utils.EzPickle):
             obs['vision'] = self.obs_vision()
         
         # Save Observation Space Before Flattening
-        self.unsorted_obs = obs
         self.sorted_obs = dict(sorted(obs.items()))
         
         if self.observation_flatten:
@@ -1330,9 +1329,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
         if self.render_mode == 'human':
             self.render()
         
-        # Add Sorted and Unsorted Observation Space to info
-        info['unsorted_obs'] = self.unsorted_obs
-        info['sorted_obs']   = self.sorted_obs
+        # Add Sorted Observation Space to info
+        info['sorted_obs'] = self.sorted_obs
         
         return convert_to_terminated_truncated_step_api((self.obs(), reward, self.done, info))
         # return self.obs(), reward, self.done, info
