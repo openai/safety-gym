@@ -903,8 +903,11 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Reset stateful parts of the environment
         self.first_reset = False  # Built our first world successfully
 
+        # Info Dictionary
+        info = {'sorted_obs':self.sorted_obs}
+        
         # Return an observation
-        return self.obs(), {'sorted_obs':self.sorted_obs}
+        return self.obs(), info
 
     def dist_goal(self):
         ''' Return the distance from the robot to the goal XY position '''
@@ -1329,10 +1332,13 @@ class Engine(gym.Env, gym.utils.EzPickle):
         if self.render_mode == 'human':
             self.render()
         
+        # Process Next Observation    
+        obs = self.obs()
+        
         # Add Sorted Observation Space to info
         info['sorted_obs'] = self.sorted_obs
         
-        return convert_to_terminated_truncated_step_api((self.obs(), reward, self.done, info))
+        return convert_to_terminated_truncated_step_api((obs, reward, self.done, info))
         # return self.obs(), reward, self.done, info
 
     def reward(self):
