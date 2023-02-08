@@ -903,11 +903,14 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Reset stateful parts of the environment
         self.first_reset = False  # Built our first world successfully
 
+        # Process Observation
+        obs = self.obs()
+        
         # Info Dictionary
         info = {'sorted_obs':self.sorted_obs}
         
         # Return an observation
-        return self.obs(), info
+        return obs, info
 
     def dist_goal(self):
         ''' Return the distance from the robot to the goal XY position '''
