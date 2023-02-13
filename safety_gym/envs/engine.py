@@ -907,7 +907,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         obs = self.obs()
         
         # Info Dictionary
-        info = {'sorted_obs':self.sorted_obs}
+        info = {'sorted_obs':self.sorted_obs.astype(np.float32)}
         
         # Return an observation
         return obs, info
@@ -1339,7 +1339,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         obs = self.obs()
         
         # Add Sorted Observation Space to info
-        info['sorted_obs'] = self.sorted_obs
+        info['sorted_obs'] = self.sorted_obs.astype(np.float32)
         
         return convert_to_terminated_truncated_step_api((obs, reward, self.done, info))
         # return self.obs(), reward, self.done, info
