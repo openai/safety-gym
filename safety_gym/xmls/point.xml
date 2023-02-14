@@ -35,6 +35,6 @@
     </sensor>
     <actuator>
         <motor gear="0.3 0 0 0 0 0" site="robot" name="x"/>
-        <velocity gear="0.3" jointinparent="z" name="z"/>
+        <motor gear="0 0 0 0 0 0.1" site="robot" name="rz"/>
     </actuator>
 </mujoco>
